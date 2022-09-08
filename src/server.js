@@ -2,7 +2,11 @@ const express = require("express");
 const app = express();
 const http = require("http");
 const port = 4000;
+
 const WebSocket = require("ws");
+const SocketIO = require("socket.io");
+const io = SocketIO();
+
 console.log("Hello");
 app.set("view engine", "pug");
 app.set("views", __dirname + "/views");
@@ -22,7 +26,12 @@ const server = http.createServer(app);
 // server를 넣어 http, webSocket을 합친다.
 // 합치지 않고 ws만 사용하려면 인자로 서버를 넣지 않으면 된다.
 const wss = new WebSocket.Server({ server });
+const wsServer = SocketIO(server);
 
+wsServer.on("connection", (socket) => {
+  console.log(socket);
+});
+/*
 const sockets = [];
 wss.on("connection", (socket) => {
   console.log("브라우저와 연결되었습니다. ✔");
@@ -55,5 +64,6 @@ wss.on("connection", (socket) => {
     console.log("브라우저와 연결이 끊겼습니다. ❌");
   });
 });
+*/
 
 server.listen(4000, handleListen);

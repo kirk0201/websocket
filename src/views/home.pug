@@ -10,12 +10,6 @@ html(lang="en")
         header  
             h1 WebSocket
         main
-            form#nick
-                input(type="text", placeholder="아이디를 입력하세요", required)
-                button 저장
-            ul
-            form#msg
-                input(type="text", placeholder="메세지를 작성하세요", required)
-                button 전송
-            h2 Welcome to WebSocket
+            
+        script(src="/socket.io/socket.io.js")
         script(src="/public/js/app.js") 
