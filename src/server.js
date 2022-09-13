@@ -2,7 +2,11 @@ const express = require("express");
 const app = express();
 const http = require("http");
 const port = 4000;
+
 const WebSocket = require("ws");
+const SocketIO = require("socket.io");
+const io = SocketIO();
+
 console.log("Hello");
 app.set("view engine", "pug");
 app.set("views", __dirname + "/views");
@@ -21,8 +25,64 @@ const server = http.createServer(app);
 // const server를 통해 http서버에 접속한 뒤 new WebSocket.Server({ server })에
 // server를 넣어 http, webSocket을 합친다.
 // 합치지 않고 ws만 사용하려면 인자로 서버를 넣지 않으면 된다.
-const wss = new WebSocket.Server({ server });
+const wsServer = SocketIO(server);
 
+const publicRooms = () => {
+  const {
+    sockets: {
+      adapter: { sids, rooms },
+    },
+  } = wsServer;
+  const publicRooms = [];
+
+  rooms.forEach((_, key) => {
+    if (sids.get(key) === undefined) {
+      publicRooms.push(key);
+    }
+  });
+  return publicRooms;
+};
+
+const countUser = (roomName) => {
+  return wsServer.sockets.adapter.rooms.get(roomName)?.size;
+};
+
+wsServer.on("connection", (socket) => {
+  socket["nickname"] = "누군가";
+  socket.onAny((e) => {
+    console.log(`Socket Event : ${e}`);
+  });
+  socket.on("enter_room", (chat_data, showRoom) => {
+    const { roomName } = chat_data;
+    showRoom();
+    socket.join(roomName);
+    // console.log("socket.rooms", socket.rooms);
+    socket.to(roomName).emit("welcome", socket.nickname, countUser(roomName));
+    wsServer.sockets.emit("room_change", publicRooms());
+  });
+  // console.log(socket.rooms);
+
+  socket.on("new_message", (msg, room, done) => {
+    socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`);
+    done();
+  });
+
+  socket.on("nickname", (nickname) => (socket["nickname"] = nickname));
+  socket.on("disconnecting", () => {
+    socket.rooms.forEach((room) =>
+      socket.to(room).emit("bye", socket.nickname, countUser(room) - 1)
+    );
+  });
+  socket.on("disconnect", () => {
+    wsServer.sockets.emit("room_change", publicRooms());
+  });
+  // socket.on("enter_room2", (roomName) => {
+  //   socket.join(roomName);
+  //   console.log("socket.rooms", socket.rooms);
+  // });
+});
+/*
+const wss = new WebSocket.Server({ server });
 const sockets = [];
 wss.on("connection", (socket) => {
   console.log("브라우저와 연결되었습니다. ✔");
@@ -55,5 +115,6 @@ wss.on("connection", (socket) => {
     console.log("브라우저와 연결이 끊겼습니다. ❌");
   });
 });
+*/
 
 server.listen(4000, handleListen);
